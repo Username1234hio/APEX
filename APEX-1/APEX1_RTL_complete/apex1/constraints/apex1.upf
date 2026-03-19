@@ -1,0 +1,172 @@
+# ============================================================
+# APEX-1 Unified Power Format (UPF 3.0)
+# Defines power domains, supply nets, and isolation/retention
+# for multi-voltage design.
+#
+# Power domains:
+#   PD_ALWAYS_ON   — 0.75V  — sequencer, DMA, PCIe IF, SPAD ctrl
+#   PD_MXU_0..3    — 0.75V  — MXU clusters (individually switchable)
+#   PD_HBM_IF      — 1.1V   — HBM PHY interfaces
+#   PD_IO          — 1.8V   — PCIe, UCIe I/O pads
+# ============================================================
+
+# ── Supply nets ───────────────────────────────────────────────
+create_supply_net VDD_CORE    -domain PDK_TOP
+create_supply_net VDD_HBM     -domain PDK_TOP
+create_supply_net VDD_IO      -domain PDK_TOP
+create_supply_net VSS         -domain PDK_TOP
+
+# ── Supply ports ──────────────────────────────────────────────
+create_supply_port VDD_CORE_PORT -direction in  -net VDD_CORE
+create_supply_port VDD_HBM_PORT  -direction in  -net VDD_HBM
+create_supply_port VDD_IO_PORT   -direction in  -net VDD_IO
+create_supply_port VSS_PORT      -direction in  -net VSS
+
+# ── Always-on domain (sequencer, DMA, SPAD ctrl, PCIe IF) ────
+create_power_domain PD_ALWAYS_ON \
+  -elements {u_seq u_dma u_spad u_pcie u_power_ctrl} \
+  -supply {primary VDD_CORE VSS}
+
+# ── MXU cluster power domains (each independently switchable) ─
+create_power_domain PD_MXU_0 \
+  -elements {gen_clusters[0]/u_cluster} \
+  -supply {primary VDD_CORE VSS}
+
+create_power_domain PD_MXU_1 \
+  -elements {gen_clusters[1]/u_cluster} \
+  -supply {primary VDD_CORE VSS}
+
+create_power_domain PD_MXU_2 \
+  -elements {gen_clusters[2]/u_cluster} \
+  -supply {primary VDD_CORE VSS}
+
+create_power_domain PD_MXU_3 \
+  -elements {gen_clusters[3]/u_cluster} \
+  -supply {primary VDD_CORE VSS}
+
+# ── HBM interface domain (1.1V) ───────────────────────────────
+create_power_domain PD_HBM_IF \
+  -elements {u_hbm_phy_a u_hbm_phy_b} \
+  -supply {primary VDD_HBM VSS}
+
+# ── I/O domain (1.8V) ─────────────────────────────────────────
+create_power_domain PD_IO \
+  -elements {u_pcie_pads u_ucie_pads} \
+  -supply {primary VDD_IO VSS}
+
+# ── Power switches (for MXU domains) ─────────────────────────
+create_power_switch PSW_MXU_0 \
+  -domain PD_MXU_0 \
+  -input_supply_port  {in_port  VDD_CORE} \
+  -output_supply_port {out_port VDD_CORE_SWITCHED_0} \
+  -control_port       {pg_ctrl  cluster_pg_en[0]} \
+  -on_state           {on_state in_port {pg_ctrl == 1'b1}} \
+  -off_state          {off_state        {pg_ctrl == 1'b0}}
+
+create_power_switch PSW_MXU_1 \
+  -domain PD_MXU_1 \
+  -input_supply_port  {in_port  VDD_CORE} \
+  -output_supply_port {out_port VDD_CORE_SWITCHED_1} \
+  -control_port       {pg_ctrl  cluster_pg_en[1]} \
+  -on_state           {on_state in_port {pg_ctrl == 1'b1}} \
+  -off_state          {off_state        {pg_ctrl == 1'b0}}
+
+create_power_switch PSW_MXU_2 \
+  -domain PD_MXU_2 \
+  -input_supply_port  {in_port  VDD_CORE} \
+  -output_supply_port {out_port VDD_CORE_SWITCHED_2} \
+  -control_port       {pg_ctrl  cluster_pg_en[2]} \
+  -on_state           {on_state in_port {pg_ctrl == 1'b1}} \
+  -off_state          {off_state        {pg_ctrl == 1'b0}}
+
+create_power_switch PSW_MXU_3 \
+  -domain PD_MXU_3 \
+  -input_supply_port  {in_port  VDD_CORE} \
+  -output_supply_port {out_port VDD_CORE_SWITCHED_3} \
+  -control_port       {pg_ctrl  cluster_pg_en[3]} \
+  -on_state           {on_state in_port {pg_ctrl == 1'b1}} \
+  -off_state          {off_state        {pg_ctrl == 1'b0}}
+
+# ── Isolation cells (prevent X propagation when domain powers off) ──
+# Place ISO cells on all outputs from switchable MXU domains
+set_isolation ISO_MXU_0 \
+  -domain     PD_MXU_0 \
+  -isolation_power_net  VDD_CORE \
+  -isolation_ground_net VSS \
+  -clamp_value 0 \
+  -applies_to outputs \
+  -location parent
+
+set_isolation ISO_MXU_1 \
+  -domain     PD_MXU_1 \
+  -isolation_power_net  VDD_CORE \
+  -isolation_ground_net VSS \
+  -clamp_value 0 \
+  -applies_to outputs \
+  -location parent
+
+set_isolation ISO_MXU_2 \
+  -domain     PD_MXU_2 \
+  -isolation_power_net  VDD_CORE \
+  -isolation_ground_net VSS \
+  -clamp_value 0 \
+  -applies_to outputs \
+  -location parent
+
+set_isolation ISO_MXU_3 \
+  -domain     PD_MXU_3 \
+  -isolation_power_net  VDD_CORE \
+  -isolation_ground_net VSS \
+  -clamp_value 0 \
+  -applies_to outputs \
+  -location parent
+
+# ── Retention registers (state preserved across power-down) ──
+# MXU cluster status registers must be retained for fast wake-up
+set_retention RET_MXU_0 \
+  -domain     PD_MXU_0 \
+  -retention_power_net VDD_CORE \
+  -elements   {gen_clusters[0]/u_cluster/state*} \
+  -save_signal  {cluster_pg_en[0] posedge} \
+  -restore_signal {cluster_pg_en[0] posedge}
+
+set_retention RET_MXU_1 \
+  -domain     PD_MXU_1 \
+  -retention_power_net VDD_CORE \
+  -elements   {gen_clusters[1]/u_cluster/state*} \
+  -save_signal  {cluster_pg_en[1] posedge} \
+  -restore_signal {cluster_pg_en[1] posedge}
+
+set_retention RET_MXU_2 \
+  -domain     PD_MXU_2 \
+  -retention_power_net VDD_CORE \
+  -elements   {gen_clusters[2]/u_cluster/state*} \
+  -save_signal  {cluster_pg_en[2] posedge} \
+  -restore_signal {cluster_pg_en[2] posedge}
+
+set_retention RET_MXU_3 \
+  -domain     PD_MXU_3 \
+  -retention_power_net VDD_CORE \
+  -elements   {gen_clusters[3]/u_cluster/state*} \
+  -save_signal  {cluster_pg_en[3] posedge} \
+  -restore_signal {cluster_pg_en[3] posedge}
+
+# ── Level shifters (VDD_CORE ↔ VDD_IO crossings) ──────────────
+# Required on all signals crossing the 0.75V → 1.8V boundary
+set_level_shifter LS_CORE_TO_IO \
+  -domain     PD_ALWAYS_ON \
+  -applies_to outputs \
+  -threshold  0.50 \
+  -rule low_to_high \
+  -location parent
+
+set_level_shifter LS_IO_TO_CORE \
+  -domain     PD_IO \
+  -applies_to outputs \
+  -threshold  0.50 \
+  -rule high_to_low \
+  -location self
+
+# ── Verification intent ───────────────────────────────────────
+# These directives guide PA (Power Aware) simulation and LP checks
+set_design_attributes -models {low_power} [current_design]
