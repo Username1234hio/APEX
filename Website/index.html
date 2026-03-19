@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX-1 — AI Matrix Processor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Root ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #080a0e;
+  --bg2:       #0d1018;
+  --bg3:       #111520;
+  --panel:     #141824;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.13);
+  --accent:    #00e5ff;
+  --accent2:   #0a7ff5;
+  --amber:     #ffb800;
+  --coral:     #ff4e6a;
+  --green:     #00e096;
+  --text:      #e8eaf0;
+  --muted:     #6b7280;
+  --dim:       #3d4455;
+  --font-head: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Noise overlay ──────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ── Typography ─────────────────────────────────────────── */
+h1, h2, h3, h4 { font-family: var(--font-head); font-weight: 800; letter-spacing: -0.02em; }
+.mono { font-family: var(--font-mono); }
+
+/* ── Nav ────────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 48px;
+  background: linear-gradient(to bottom, rgba(8,10,14,0.95), transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.nav-logo {
+  font-family: var(--font-head);
+  font-size: 22px; font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  text-decoration: none;
+}
+.nav-logo span { color: var(--accent); }
+
+.nav-links {
+  display: flex; gap: 36px; list-style: none;
+}
+.nav-links a {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--muted); text-decoration: none;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+.nav-cta {
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 10px 24px;
+  background: var(--accent); color: #000;
+  border: none; cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  transition: opacity 0.2s;
+  text-decoration: none; display: inline-block;
+}
+.nav-cta:hover { opacity: 0.85; }
+
+/* ── Hero ───────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  padding: 120px 48px 80px;
+  text-align: center;
+}
+
+/* Grid background */
+.hero::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 20%, transparent 80%);
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 28px;
+  display: flex; align-items: center; gap: 12px;
+}
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: ''; width: 32px; height: 1px; background: var(--accent); opacity: 0.5;
+}
+
+.hero h1 {
+  font-size: clamp(72px, 10vw, 140px);
+  line-height: 0.92; letter-spacing: -0.04em;
+  margin-bottom: 0;
+}
+.hero h1 .line1 { display: block; color: var(--text); }
+.hero h1 .line2 {
+  display: block;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 60%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 20px; font-weight: 300; color: var(--muted);
+  max-width: 560px; margin: 32px auto 0;
+  line-height: 1.5;
+}
+
+.hero-stats {
+  display: flex; gap: 0; margin: 64px auto 0;
+  border: 1px solid var(--border2);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  overflow: hidden;
+}
+.hero-stat {
+  padding: 28px 48px;
+  border-right: 1px solid var(--border2);
+  position: relative;
+}
+.hero-stat:last-child { border-right: none; }
+.hero-stat-val {
+  font-family: var(--font-head); font-size: 42px; font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1;
+  color: var(--text);
+}
+.hero-stat-val em {
+  font-style: normal;
+  font-size: 22px; color: var(--accent);
+}
+.hero-stat-label {
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted); margin-top: 6px;
+}
+
+/* ── Animated chip canvas ───────────────────────────────── */
+.chip-canvas-wrap {
+  position: relative; width: 100%; max-width: 900px;
+  margin: 72px auto 0;
+}
+#chip-canvas {
+  width: 100%; height: 460px;
+  display: block;
+}
+
+/* ── Section commons ────────────────────────────────────── */
+section { padding: 120px 48px; }
+.container { max-width: 1160px; margin: 0 auto; }
+
+.section-label {
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 16px;
+}
+.section-title {
+  font-size: clamp(36px, 5vw, 60px);
+  line-height: 1; letter-spacing: -0.03em;
+  margin-bottom: 20px;
+}
+.section-body {
+  font-size: 17px; color: var(--muted);
+  max-width: 600px; line-height: 1.7; font-weight: 300;
+}
+
+/* ── Architecture section ───────────────────────────────── */
+.arch-section { background: var(--bg2); }
+
+.arch-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2px; margin-top: 64px;
+  border: 1px solid var(--border2);
+}
+.arch-card {
+  background: var(--panel); padding: 40px;
+  border: 1px solid var(--border);
+  transition: border-color 0.3s, background 0.3s;
+  position: relative; overflow: hidden;
+}
+.arch-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s;
+}
+.arch-card:hover { background: #161c2e; border-color: var(--border2); }
+.arch-card:hover::before { transform: scaleX(1); }
+
+.arch-card-icon {
+  width: 44px; height: 44px; margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border2);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  font-size: 18px;
+}
+.arch-card h3 {
+  font-size: 20px; font-weight: 700; margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+.arch-card p { font-size: 15px; color: var(--muted); line-height: 1.65; }
+.arch-card .tag {
+  display: inline-block; margin-top: 20px;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 5px 12px;
+  background: rgba(0,229,255,0.08); color: var(--accent);
+  border: 1px solid rgba(0,229,255,0.2);
+}
+
+/* ── Specs section ──────────────────────────────────────── */
+.specs-section { background: var(--bg); }
+
+.specs-layout {
+  display: grid; grid-template-columns: 1fr 1.4fr;
+  gap: 80px; align-items: start; margin-top: 64px;
+}
+
+.spec-group { margin-bottom: 40px; }
+.spec-group-title {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--dim); margin-bottom: 16px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.spec-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-key { font-size: 14px; color: var(--muted); }
+.spec-val {
+  font-family: var(--font-mono); font-size: 14px;
+  color: var(--text); text-align: right;
+}
+.spec-val.highlight { color: var(--accent); }
+
+/* Performance bar chart */
+.perf-chart { }
+.perf-title {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--dim); margin-bottom: 24px;
+}
+.perf-bar-row { margin-bottom: 20px; }
+.perf-bar-label {
+  display: flex; justify-content: space-between;
+  font-size: 13px; color: var(--muted);
+  margin-bottom: 8px;
+}
+.perf-bar-label span:last-child {
+  font-family: var(--font-mono); color: var(--text); font-size: 13px;
+}
+.perf-bar-track {
+  height: 6px; background: var(--border); position: relative;
+  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 100%, 4px 100%);
+}
+.perf-bar-fill {
+  position: absolute; top: 0; left: 0; height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  transition: width 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+  clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 100%, 4px 100%);
+}
+.perf-bar-fill.amber {
+  background: linear-gradient(90deg, #c47a00, var(--amber));
+}
+.perf-bar-fill.coral {
+  background: linear-gradient(90deg, #c4003e, var(--coral));
+}
+.perf-bar-fill.green {
+  background: linear-gradient(90deg, #00a06a, var(--green));
+}
+
+/* ── ISA section ────────────────────────────────────────── */
+.isa-section { background: var(--bg3); }
+
+.isa-terminal {
+  margin-top: 64px;
+  background: #090c14;
+  border: 1px solid var(--border2);
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+  overflow: hidden;
+}
+.isa-terminal-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border2);
+}
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot.red { background: #ff5f57; }
+.dot.yellow { background: #ffbd2e; }
+.dot.green { background: #28c840; }
+.isa-terminal-title {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--muted); margin-left: 8px; letter-spacing: 0.05em;
+}
+.isa-terminal-body {
+  padding: 32px 36px;
+  font-family: var(--font-mono); font-size: 13px;
+  line-height: 2.2;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 40px;
+}
+.isa-entry { display: flex; gap: 16px; align-items: baseline; }
+.isa-opcode {
+  color: var(--accent); min-width: 36px;
+  font-size: 11px;
+}
+.isa-name { color: var(--text); font-size: 13px; }
+.isa-desc { color: var(--dim); font-size: 11px; margin-top: 2px; }
+
+/* ── Memory section ─────────────────────────────────────── */
+.memory-section { background: var(--bg2); }
+
+.memory-pyramid {
+  margin-top: 64px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.mem-tier {
+  display: flex; align-items: center;
+  border: 1px solid var(--border2);
+  position: relative; overflow: hidden;
+  transition: border-color 0.3s;
+}
+.mem-tier::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(0,229,255,0.03), transparent);
+  transform: translateX(-100%);
+  transition: transform 0s;
+}
+.mem-tier:hover { border-color: rgba(0,229,255,0.3); }
+.mem-tier:hover::before { transform: translateX(100%); transition: transform 0.8s; }
+
+.mem-tier-1 { width: 280px; background: rgba(0,229,255,0.12); }
+.mem-tier-2 { width: 440px; background: rgba(0,229,255,0.07); }
+.mem-tier-3 { width: 600px; background: rgba(0,229,255,0.04); }
+.mem-tier-4 { width: 760px; background: rgba(0,229,255,0.02); }
+
+.mem-content {
+  padding: 20px 32px;
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%;
+}
+.mem-name { font-family: var(--font-head); font-size: 15px; font-weight: 700; }
+.mem-stats {
+  display: flex; gap: 32px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+}
+.mem-stats strong { color: var(--text); display: block; font-size: 16px; }
+
+/* ── Training section ───────────────────────────────────── */
+.training-section { background: var(--bg); }
+
+.training-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+  margin-top: 64px; border: 1px solid var(--border2);
+}
+.training-card {
+  padding: 40px 36px; background: var(--panel);
+  border: 1px solid var(--border); position: relative;
+}
+.training-card-num {
+  font-family: var(--font-head); font-size: 72px; font-weight: 800;
+  letter-spacing: -0.05em; line-height: 1;
+  color: rgba(255,255,255,0.04); position: absolute; top: 24px; right: 24px;
+}
+.training-card h3 { font-size: 18px; margin-bottom: 12px; letter-spacing: -0.02em; }
+.training-card p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+.training-card .pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 20px; padding: 6px 14px;
+  background: rgba(255,184,0,0.08); border: 1px solid rgba(255,184,0,0.2);
+  font-family: var(--font-mono); font-size: 11px; color: var(--amber);
+  letter-spacing: 0.08em;
+}
+.training-card .pill.green {
+  background: rgba(0,224,150,0.08); border-color: rgba(0,224,150,0.2);
+  color: var(--green);
+}
+.training-card .pill.blue {
+  background: rgba(0,229,255,0.08); border-color: rgba(0,229,255,0.2);
+  color: var(--accent);
+}
+
+/* ── CTA section ────────────────────────────────────────── */
+.cta-section {
+  padding: 160px 48px;
+  background: var(--bg2);
+  text-align: center; position: relative; overflow: hidden;
+}
+.cta-section::before {
+  content: '';
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px; height: 400px;
+  background: radial-gradient(ellipse, rgba(0,229,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-title {
+  font-size: clamp(40px, 6vw, 80px);
+  letter-spacing: -0.04em; line-height: 0.95;
+  margin-bottom: 32px;
+}
+.cta-body {
+  font-size: 18px; color: var(--muted); font-weight: 300;
+  max-width: 480px; margin: 0 auto 48px;
+}
+.cta-buttons { display: flex; gap: 16px; justify-content: center; align-items: center; }
+.btn-primary {
+  font-family: var(--font-mono); font-size: 13px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 16px 40px;
+  background: var(--accent); color: #000;
+  border: none; cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  transition: opacity 0.2s; text-decoration: none; display: inline-block;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary {
+  font-family: var(--font-mono); font-size: 13px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 16px 40px;
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border2); cursor: pointer;
+  transition: border-color 0.2s, color 0.2s; text-decoration: none; display: inline-block;
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Footer ─────────────────────────────────────────────── */
+footer {
+  padding: 40px 48px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.footer-logo {
+  font-family: var(--font-head); font-size: 18px; font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.footer-logo span { color: var(--accent); }
+.footer-copy { font-family: var(--font-mono); font-size: 11px; color: var(--dim); }
+.footer-links {
+  display: flex; gap: 24px; list-style: none;
+}
+.footer-links a {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--dim); text-decoration: none;
+  transition: color 0.2s; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.footer-links a:hover { color: var(--text); }
+
+/* ── Scroll animations ──────────────────────────────────── */
+.reveal {
+  opacity: 0; transform: translateY(32px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* stagger children */
+.reveal-stagger > * {
+  opacity: 0; transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-stagger.visible > *:nth-child(1) { opacity: 1; transform: none; transition-delay: 0s; }
+.reveal-stagger.visible > *:nth-child(2) { opacity: 1; transform: none; transition-delay: 0.1s; }
+.reveal-stagger.visible > *:nth-child(3) { opacity: 1; transform: none; transition-delay: 0.2s; }
+.reveal-stagger.visible > *:nth-child(4) { opacity: 1; transform: none; transition-delay: 0.3s; }
+.reveal-stagger.visible > *:nth-child(5) { opacity: 1; transform: none; transition-delay: 0.4s; }
+.reveal-stagger.visible > *:nth-child(6) { opacity: 1; transform: none; transition-delay: 0.5s; }
+
+/* pulse dot */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+.live-dot {
+  display: inline-block; width: 6px; height: 6px;
+  background: var(--green); border-radius: 50%;
+  animation: pulse-dot 1.8s ease-in-out infinite;
+  margin-right: 6px; vertical-align: middle;
+}
+
+/* scan line animation on hero */
+@keyframes scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+.hero-scanline {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,229,255,0.3), transparent);
+  animation: scan 6s linear infinite;
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a href="#" class="nav-logo">APEX<span>-1</span></a>
+  <ul class="nav-links">
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#specs">Specs</a></li>
+    <li><a href="#isa">ISA</a></li>
+    <li><a href="#memory">Memory</a></li>
+    <li><a href="#training">Training</a></li>
+  </ul>
+  <a href="#contact" class="nav-cta">Request Access</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-scanline"></div>
+
+  <div class="hero-eyebrow">
+    <span class="live-dot"></span>
+    TSMC N3E · 4-Die CoWoS Package · Rev 1.0
+  </div>
+
+  <h1>
+    <span class="line1">APEX</span>
+    <span class="line2">-1</span>
+  </h1>
+  <p class="hero-sub">
+    The AI matrix processor purpose-built for nothing else.
+    3,000+ TOPS. Every transistor devoted to the one operation that matters.
+  </p>
+
+  <div class="hero-stats reveal-stagger">
+    <div class="hero-stat">
+      <div class="hero-stat-val">3,145<em>T</em></div>
+      <div class="hero-stat-label">INT8 OPS/sec</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-val">6,291<em>T</em></div>
+      <div class="hero-stat-label">Sparse TOPS</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-val">6<em>TB/s</em></div>
+      <div class="hero-stat-label">HBM Bandwidth</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-val">96<em>GB</em></div>
+      <div class="hero-stat-label">HBM3e Memory</div>
+    </div>
+  </div>
+
+  <div class="chip-canvas-wrap">
+    <canvas id="chip-canvas"></canvas>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section class="arch-section" id="architecture">
+  <div class="container">
+    <div class="section-label">Architecture</div>
+    <h2 class="section-title">Built for one thing.<br>Exceptional at it.</h2>
+    <p class="section-body">
+      Every design decision — the ISA, the memory hierarchy, the control logic —
+      was made by asking: does this help matrix multiplication? If not, it doesn't exist on APEX-1.
+    </p>
+
+    <div class="arch-grid reveal-stagger">
+      <div class="arch-card">
+        <div class="arch-card-icon">⬡</div>
+        <h3>Systolic Array Fabric</h3>
+        <p>64 × 128×128 MAC arrays across 4 dies. Weights stream downward, activations rightward. Zero broadcast overhead. Each cell performs one multiply-accumulate per clock, every clock.</p>
+        <span class="tag">1,048,576 MACs</span>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-icon">◈</div>
+        <h3>Software-Managed SRAM</h3>
+        <p>256 MB on-chip scratchpad with no cache hierarchy, no TLB, no eviction logic. The compiler controls every byte movement. Zero cache misses — not by luck, by construction.</p>
+        <span class="tag">20 TB/s internal BW</span>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-icon">⟁</div>
+        <h3>Static Sequencer</h3>
+        <p>A flat 18-instruction ISA with no branches, no out-of-order execution, no speculative prefetch. Every operation is scheduled at compile time. Latency is deterministic to the cycle.</p>
+        <span class="tag">18 instructions total</span>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-icon">◉</div>
+        <h3>2:4 Sparsity Engine</h3>
+        <p>Structured 2:4 sparsity decompressed on-the-fly from a compressed weight buffer plus a 2-bit index mask. Zero-weight multiplications are skipped at the hardware level, doubling effective throughput.</p>
+        <span class="tag">2× sparse throughput</span>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-icon">◌</div>
+        <h3>Convolution Engine</h3>
+        <p>Dual-path: im2col for arbitrary kernels, Winograd F(2,3) for 3×3 stride-1 convolutions. The compiler selects the optimal path. Winograd reduces multiply count by 2.25× with identical numerical output.</p>
+        <span class="tag">Winograd + im2col</span>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-icon">⬡</div>
+        <h3>UCIe Scale-Out</h3>
+        <p>Four dies connected via UCIe 2.0 at 20 TB/s on a TSMC CoWoS-L silicon interposer. The compiler sees a single logical accelerator. Ring all-reduce for gradient sync runs in dedicated hardware.</p>
+        <span class="tag">4-die CoWoS package</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Specs -->
+<section class="specs-section" id="specs">
+  <div class="container">
+    <div class="section-label">Specifications</div>
+    <h2 class="section-title">Numbers that matter.</h2>
+    <p class="section-body">
+      No general-purpose overhead. Every watt, every mm², every transistor allocated to AI compute.
+    </p>
+
+    <div class="specs-layout">
+      <div class="reveal">
+        <div class="spec-group">
+          <div class="spec-group-title">Compute</div>
+          <div class="spec-row"><span class="spec-key">Peak throughput INT8</span><span class="spec-val highlight">3,145 TOPS</span></div>
+          <div class="spec-row"><span class="spec-key">Peak throughput (2:4 sparse)</span><span class="spec-val highlight">6,291 TOPS</span></div>
+          <div class="spec-row"><span class="spec-key">Peak throughput BF16</span><span class="spec-val">786 TOPS</span></div>
+          <div class="spec-row"><span class="spec-key">Peak throughput FP8</span><span class="spec-val">3,145 TOPS</span></div>
+          <div class="spec-row"><span class="spec-key">Systolic arrays</span><span class="spec-val">64 total (4 dies)</span></div>
+          <div class="spec-row"><span class="spec-key">MAC cells</span><span class="spec-val">1,048,576</span></div>
+          <div class="spec-row"><span class="spec-key">Clock frequency</span><span class="spec-val">1.0 GHz</span></div>
+        </div>
+
+        <div class="spec-group">
+          <div class="spec-group-title">Memory</div>
+          <div class="spec-row"><span class="spec-key">HBM3e capacity</span><span class="spec-val highlight">96 GB</span></div>
+          <div class="spec-row"><span class="spec-key">HBM bandwidth</span><span class="spec-val highlight">6 TB/s</span></div>
+          <div class="spec-row"><span class="spec-key">On-chip SRAM</span><span class="spec-val">256 MB</span></div>
+          <div class="spec-row"><span class="spec-key">Internal SRAM BW</span><span class="spec-val">20 TB/s</span></div>
+          <div class="spec-row"><span class="spec-key">DMA channels</span><span class="spec-val">8</span></div>
+        </div>
+
+        <div class="spec-group">
+          <div class="spec-group-title">Package & Power</div>
+          <div class="spec-row"><span class="spec-key">Process node</span><span class="spec-val">TSMC N3E</span></div>
+          <div class="spec-row"><span class="spec-key">Package</span><span class="spec-val">CoWoS-L 4-die</span></div>
+          <div class="spec-row"><span class="spec-key">Die area (each)</span><span class="spec-val">~300 mm²</span></div>
+          <div class="spec-row"><span class="spec-key">TDP</span><span class="spec-val">~400 W</span></div>
+          <div class="spec-row"><span class="spec-key">Host interface</span><span class="spec-val">PCIe 5.0 x16</span></div>
+          <div class="spec-row"><span class="spec-key">Die-to-die</span><span class="spec-val">UCIe 2.0 · 20 TB/s</span></div>
+        </div>
+      </div>
+
+      <div class="perf-chart reveal">
+        <div class="perf-title">Performance vs. alternatives</div>
+
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>APEX-1 INT8 (dense)</span><span>3,145 TOPS</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill" data-width="78"></div></div>
+        </div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>APEX-1 (2:4 sparse)</span><span>6,291 TOPS</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill" data-width="100"></div></div>
+        </div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>GPU competitor A</span><span>~1,979 TOPS</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill amber" data-width="49"></div></div>
+        </div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>GPU competitor B</span><span>~1,457 TOPS</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill amber" data-width="36"></div></div>
+        </div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>Previous gen TPU</span><span>~918 TOPS</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill coral" data-width="23"></div></div>
+        </div>
+
+        <br><div class="perf-title" style="margin-top:40px">TOPS per watt</div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>APEX-1</span><span>7.86 TOPS/W</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill" data-width="100"></div></div>
+        </div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>GPU competitor A</span><span>~2.51 TOPS/W</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill amber" data-width="32"></div></div>
+        </div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>GPU competitor B</span><span>~1.86 TOPS/W</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill coral" data-width="24"></div></div>
+        </div>
+
+        <br><div class="perf-title" style="margin-top:40px">Max model size (BF16 inference)</div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>APEX-1 (96 GB HBM)</span><span>48B params</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill green" data-width="100"></div></div>
+        </div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>GPU competitor (80 GB)</span><span>40B params</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill amber" data-width="83"></div></div>
+        </div>
+        <div class="perf-bar-row">
+          <div class="perf-bar-label"><span>GPU competitor (48 GB)</span><span>24B params</span></div>
+          <div class="perf-bar-track"><div class="perf-bar-fill coral" data-width="50"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ISA -->
+<section class="isa-section" id="isa">
+  <div class="container">
+    <div class="section-label">Instruction Set</div>
+    <h2 class="section-title">18 instructions.<br>Zero bloat.</h2>
+    <p class="section-body">
+      The ISA is the primary security mechanism. There is no way to express a branch, a cache miss, a page fault, or a vertex shader in these 18 opcodes. The chip is architecturally incapable of general-purpose compute.
+    </p>
+
+    <div class="isa-terminal reveal">
+      <div class="isa-terminal-bar">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+        <span class="isa-terminal-title">apex1_isa.v · instruction set reference · Rev 1.0</span>
+      </div>
+      <div class="isa-terminal-body">
+        <div>
+          <div class="isa-entry"><span class="isa-opcode">0x00</span><div><div class="isa-name">NOP</div><div class="isa-desc">No operation</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x01</span><div><div class="isa-name">LOAD_TILE</div><div class="isa-desc">HBM → scratchpad</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x02</span><div><div class="isa-name">STORE_TILE</div><div class="isa-desc">Scratchpad → HBM</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x03</span><div><div class="isa-name">MATMUL</div><div class="isa-desc">Systolic GEMM tile</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x04</span><div><div class="isa-name">CONV2D</div><div class="isa-desc">im2col / Winograd</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x05</span><div><div class="isa-name">SPARSE_MM</div><div class="isa-desc">2:4 sparse GEMM</div></div></div>
+        </div>
+        <div>
+          <div class="isa-entry"><span class="isa-opcode">0x06</span><div><div class="isa-name">ADD</div><div class="isa-desc">Element-wise add</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x07</span><div><div class="isa-name">SCALE</div><div class="isa-desc">Scalar multiply</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x08</span><div><div class="isa-name">ACTIVATE</div><div class="isa-desc">GELU/ReLU/SiLU</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x09</span><div><div class="isa-name">NORMALIZE</div><div class="isa-desc">LayerNorm/RMSNorm</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x0A</span><div><div class="isa-name">SOFTMAX</div><div class="isa-desc">Numerically stable</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x0B</span><div><div class="isa-name">REDUCE_SUM</div><div class="isa-desc">Dim reduction</div></div></div>
+        </div>
+        <div>
+          <div class="isa-entry"><span class="isa-opcode">0x0C</span><div><div class="isa-name">REDUCE_MAX</div><div class="isa-desc">Max reduction</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x0D</span><div><div class="isa-name">TRANSPOSE</div><div class="isa-desc">Layout permutation</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x0E</span><div><div class="isa-name">GRAD_ACCUM</div><div class="isa-desc">BF16→FP32 gradient</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x0F</span><div><div class="isa-name">ALL_REDUCE</div><div class="isa-desc">Ring / tree collective</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x10</span><div><div class="isa-name">DMA_PREFETCH</div><div class="isa-desc">Scheduled async DMA</div></div></div>
+          <div class="isa-entry"><span class="isa-opcode">0x11</span><div><div class="isa-name">SYNC_BARRIER</div><div class="isa-desc">Cross-tile barrier</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Memory -->
+<section class="memory-section" id="memory">
+  <div class="container">
+    <div class="section-label">Memory Hierarchy</div>
+    <h2 class="section-title">Zero cache misses.<br>By construction.</h2>
+    <p class="section-body">
+      No hardware caches. No TLBs. No eviction logic. The compiler schedules every byte movement at compile time. Memory latency is fully deterministic — the scheduler has already accounted for it.
+    </p>
+
+    <div class="memory-pyramid reveal">
+      <div class="mem-tier mem-tier-1">
+        <div class="mem-content">
+          <span class="mem-name">MAC Register File</span>
+          <div class="mem-stats">
+            <div><strong>4 KB</strong>per array</div>
+            <div><strong>0</strong>cycles</div>
+            <div><strong>∞</strong>bandwidth</div>
+          </div>
+        </div>
+      </div>
+      <div class="mem-tier mem-tier-2">
+        <div class="mem-content">
+          <span class="mem-name">Tile Local SRAM</span>
+          <div class="mem-stats">
+            <div><strong>2 MB</strong>per cluster</div>
+            <div><strong>2</strong>cycles</div>
+            <div><strong>8 TB/s</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="mem-tier mem-tier-3">
+        <div class="mem-content">
+          <span class="mem-name">Global Scratchpad SRAM</span>
+          <div class="mem-stats">
+            <div><strong>256 MB</strong>on-chip</div>
+            <div><strong>10</strong>cycles</div>
+            <div><strong>20 TB/s</strong></div>
+          </div>
+        </div>
+      </div>
+      <div class="mem-tier mem-tier-4">
+        <div class="mem-content">
+          <span class="mem-name">HBM3e Off-Chip</span>
+          <div class="mem-stats">
+            <div><strong>96 GB</strong>2 stacks</div>
+            <div><strong>~120</strong>cycles</div>
+            <div><strong>6 TB/s</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Training -->
+<section class="training-section" id="training">
+  <div class="container">
+    <div class="section-label">Training Support</div>
+    <h2 class="section-title">Not just inference.<br>Full training.</h2>
+    <p class="section-body">
+      APEX-1 supports all four workloads from day one. FP32 gradient accumulation, ring all-reduce, and multi-card scale-out are first-class hardware features, not software workarounds.
+    </p>
+
+    <div class="training-grid reveal-stagger">
+      <div class="training-card">
+        <div class="training-card-num">01</div>
+        <h3>FP32 Gradient Accumulation</h3>
+        <p>256-entry FP32 accumulator register file. BF16 gradients are automatically upcast, preventing the catastrophic cancellation that destroys small gradient values when accumulated at half precision.</p>
+        <span class="pill amber">FP32 precision</span>
+      </div>
+      <div class="training-card">
+        <div class="training-card-num">02</div>
+        <h3>Ring All-Reduce</h3>
+        <p>Gradient synchronization across all dies and cards runs in dedicated hardware via the ALL_REDUCE instruction. Ring and tree topologies are supported. The compiler inserts barriers; no runtime negotiation.</p>
+        <span class="pill green">Hardware collective</span>
+      </div>
+      <div class="training-card">
+        <div class="training-card-num">03</div>
+        <h3>Multi-Format Training</h3>
+        <p>Forward pass in FP8 E4M3 for maximum throughput. Gradient accumulation in FP32. Weight updates in BF16. The compiler manages format conversions at tile boundaries with zero programmer intervention.</p>
+        <span class="pill blue">FP8 / BF16 / FP32</span>
+      </div>
+      <div class="training-card">
+        <div class="training-card-num">04</div>
+        <h3>LLM Training Capacity</h3>
+        <p>96 GB HBM supports 8B parameter models with Adam optimizer state (weights + gradients + first/second moments = 12 bytes/param). FP8 weights extend this to 96B parameters for inference.</p>
+        <span class="pill amber">8B params w/ Adam</span>
+      </div>
+      <div class="training-card">
+        <div class="training-card-num">05</div>
+        <h3>CNN & Vision Training</h3>
+        <p>Winograd convolution in the forward pass, im2col in the backward pass where kernel symmetry breaks. Depthwise and grouped convolutions are supported natively via the CONV2D groups parameter.</p>
+        <span class="pill green">Winograd forward</span>
+      </div>
+      <div class="training-card">
+        <div class="training-card-num">06</div>
+        <h3>DVFS for Training Runs</h3>
+        <p>Three power operating points selectable per run: Performance (400W / 1GHz), Balanced (260W / 800MHz), Efficiency (120W / 500MHz). The BMC monitors 8 junction-temperature sensors and throttles automatically.</p>
+        <span class="pill blue">3 DVFS modes</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="contact">
+  <div class="container">
+    <h2 class="cta-title">Ready to eliminate<br>the GPU tax?</h2>
+    <p class="cta-body">
+      APEX-1 is available for evaluation partnerships and early access programs. Architecture documentation and RTL available under NDA.
+    </p>
+    <div class="cta-buttons">
+      <a href="#" class="btn-primary">Request Access</a>
+      <a href="#" class="btn-secondary">Download Datasheet</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">APEX<span>-1</span></div>
+  <span class="footer-copy mono">© 2025 APEX Semiconductor · Rev 1.0 · TSMC N3E</span>
+  <ul class="footer-links">
+    <li><a href="#">Docs</a></li>
+    <li><a href="#">GitHub</a></li>
+    <li><a href="#">Contact</a></li>
+  </ul>
+</footer>
+
+<script>
+// ── Animated chip canvas ─────────────────────────────────
+const canvas = document.getElementById('chip-canvas');
+const ctx    = canvas.getContext('2d');
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Colors
+const C = {
+  bg:      '#0d1018',
+  border:  'rgba(255,255,255,0.08)',
+  accent:  '#00e5ff',
+  accent2: '#0a7ff5',
+  amber:   '#ffb800',
+  green:   '#00e096',
+  dim:     '#1e2535',
+  muted:   '#3d4455',
+  text:    '#8090b0',
+};
+
+// Particles flowing through the chip
+const particles = [];
+const PARTICLE_COUNT = 80;
+
+class Particle {
+  constructor() { this.reset(true); }
+  reset(init=false) {
+    // Random path type: horizontal (activation) or vertical (weight)
+    this.type   = Math.random() < 0.6 ? 'h' : 'v';
+    this.color  = this.type === 'h' ? C.accent : C.amber;
+    this.speed  = 0.8 + Math.random() * 1.6;
+    this.size   = 1.5 + Math.random() * 1.5;
+    this.alpha  = 0.4 + Math.random() * 0.6;
+    this.trail  = [];
+    this.trailMax = 6 + Math.floor(Math.random() * 6);
+
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
+    const chipL = W * 0.2, chipR = W * 0.8;
+    const chipT = H * 0.08, chipB = H * 0.92;
+
+    if (this.type === 'h') {
+      this.x  = init ? chipL + Math.random() * (chipR - chipL) : chipL;
+      this.y  = chipT + Math.random() * (chipB - chipT);
+      this.vx = this.speed; this.vy = 0;
+    } else {
+      this.x  = chipL + Math.random() * (chipR - chipL);
+      this.y  = init ? chipT + Math.random() * (chipB - chipT) : chipT;
+      this.vx = 0; this.vy = this.speed;
+    }
+  }
+  update() {
+    this.trail.push({ x: this.x, y: this.y });
+    if (this.trail.length > this.trailMax) this.trail.shift();
+    this.x += this.vx; this.y += this.vy;
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
+    if (this.x > W * 0.82 || this.y > H * 0.94) this.reset();
+  }
+  draw() {
+    for (let i = 0; i < this.trail.length; i++) {
+      const t = i / this.trail.length;
+      ctx.beginPath();
+      ctx.arc(this.trail[i].x, this.trail[i].y, this.size * t, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.alpha * t * 0.7;
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = this.color;
+    ctx.globalAlpha = this.alpha;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+
+// Draw chip layout
+function drawChip(t) {
+  const W  = canvas.getBoundingClientRect().width;
+  const H  = canvas.getBoundingClientRect().height;
+  const CX = W / 2, CY = H / 2;
+  const CW = W * 0.62, CH = H * 0.88;
+  const CL = CX - CW/2, CT = CY - CH/2;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Die shadow / glow
+  const grd = ctx.createRadialGradient(CX, CY, 0, CX, CY, CW * 0.7);
+  grd.addColorStop(0, 'rgba(0,229,255,0.04)');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Main die outline ──────────────────────────────────
+  const bev = 18;
+  ctx.beginPath();
+  ctx.moveTo(CL + bev, CT);
+  ctx.lineTo(CL + CW - bev, CT);
+  ctx.lineTo(CL + CW, CT + bev);
+  ctx.lineTo(CL + CW, CT + CH - bev);
+  ctx.lineTo(CL + CW - bev, CT + CH);
+  ctx.lineTo(CL + bev, CT + CH);
+  ctx.lineTo(CL, CT + CH - bev);
+  ctx.lineTo(CL, CT + bev);
+  ctx.closePath();
+  ctx.fillStyle = '#0b0f1a';
+  ctx.fill();
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Accent corner lines
+  ctx.strokeStyle = C.accent;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.4;
+  // Top-left corner
+  ctx.beginPath(); ctx.moveTo(CL, CT + 40); ctx.lineTo(CL, CT + bev); ctx.lineTo(CL + bev, CT); ctx.lineTo(CL + 40, CT); ctx.stroke();
+  // Top-right corner
+  ctx.beginPath(); ctx.moveTo(CL + CW - 40, CT); ctx.lineTo(CL + CW - bev, CT); ctx.lineTo(CL + CW, CT + bev); ctx.lineTo(CL + CW, CT + 40); ctx.stroke();
+  // Bottom-left corner
+  ctx.beginPath(); ctx.moveTo(CL, CT + CH - 40); ctx.lineTo(CL, CT + CH - bev); ctx.lineTo(CL + bev, CT + CH); ctx.lineTo(CL + 40, CT + CH); ctx.stroke();
+  // Bottom-right corner
+  ctx.beginPath(); ctx.moveTo(CL + CW - 40, CT + CH); ctx.lineTo(CL + CW - bev, CT + CH); ctx.lineTo(CL + CW, CT + CH - bev); ctx.lineTo(CL + CW, CT + CH - 40); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ── MXU clusters (2×2 grid) ───────────────────────────
+  const margin = 28;
+  const gap    = 10;
+  const clW = (CW - margin*2 - gap*3) / 4;
+  const clH = (CH - margin*2 - gap  ) / 2;
+
+  const clusterColors = [C.accent2, C.accent, C.accent2, C.accent];
+
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 4; col++) {
+      const idx = row * 4 + col;
+      const x = CL + margin + col * (clW + gap);
+      const y = CT + margin + row * (clH + gap);
+      const pulse = 0.5 + 0.5 * Math.sin(t * 0.8 + idx * 1.1);
+
+      // Cluster background
+      ctx.fillStyle = '#0f1420';
+      ctx.fillRect(x, y, clW, clH);
+      ctx.strokeStyle = `rgba(0,229,255,${0.08 + pulse * 0.07})`;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, clW, clH);
+
+      // Mini systolic grid inside cluster
+      const rows = 8, cols = 8;
+      const dotS = Math.min(clW, clH) / (Math.max(rows, cols) + 1);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const active = Math.sin(t * 1.2 + r * 0.5 + c * 0.7 + idx * 0.9) > 0.3;
+          const dx = x + (c + 1) * clW / (cols + 1);
+          const dy = y + (r + 1) * clH / (rows + 1);
+          ctx.beginPath();
+          ctx.arc(dx, dy, 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = active ? clusterColors[idx % 2] : C.muted;
+          ctx.globalAlpha = active ? (0.4 + pulse * 0.4) : 0.15;
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // Cluster label
+      ctx.fillStyle = C.text;
+      ctx.font = `bold 9px 'Space Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(`MXU ${idx}`, x + clW/2, y + clH - 8);
+    }
+  }
+
+  // ── SRAM bar (top) ────────────────────────────────────
+  const sramH = 16;
+  const sramY = CT + 8;
+  const pulseS = 0.5 + 0.5 * Math.sin(t * 1.5);
+  ctx.fillStyle = `rgba(0,224,150,${0.04 + pulseS * 0.04})`;
+  ctx.fillRect(CL + margin, sramY, CW - margin * 2, sramH);
+  ctx.strokeStyle = `rgba(0,224,150,${0.2 + pulseS * 0.15})`;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(CL + margin, sramY, CW - margin * 2, sramH);
+  ctx.fillStyle = C.green;
+  ctx.font = `9px 'Space Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.globalAlpha = 0.7;
+  ctx.fillText('GLOBAL SRAM SCRATCHPAD — 256 MB', CX, sramY + 11);
+  ctx.globalAlpha = 1;
+
+  // ── DMA + sequencer bar (bottom) ──────────────────────
+  const barH = 16;
+  const barY = CT + CH - margin - barH;
+  ctx.fillStyle = 'rgba(255,184,0,0.04)';
+  ctx.fillRect(CL + margin, barY, (CW - margin*2)/2 - gap/2, barH);
+  ctx.strokeStyle = 'rgba(255,184,0,0.2)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(CL + margin, barY, (CW - margin*2)/2 - gap/2, barH);
+  ctx.fillStyle = C.amber;
+  ctx.font = `9px 'Space Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.globalAlpha = 0.7;
+  ctx.fillText('DMA ENGINE', CL + margin + (CW - margin*2)/4 - gap/4, barY + 11);
+
+  const bx2 = CL + margin + (CW - margin*2)/2 + gap/2;
+  ctx.fillStyle = 'rgba(0,229,255,0.04)';
+  ctx.fillRect(bx2, barY, (CW - margin*2)/2 - gap/2, barH);
+  ctx.strokeStyle = 'rgba(0,229,255,0.2)';
+  ctx.strokeRect(bx2, barY, (CW - margin*2)/2 - gap/2, barH);
+  ctx.fillStyle = C.accent;
+  ctx.fillText('STATIC SEQUENCER', bx2 + (CW - margin*2)/4 - gap/4, barY + 11);
+  ctx.globalAlpha = 1;
+
+  // ── HBM stacks (left and right) ───────────────────────
+  const hbmW = 32, hbmH = CH * 0.7;
+  const hbmY = CT + (CH - hbmH) / 2;
+
+  for (let side = 0; side < 2; side++) {
+    const hx = side === 0 ? CL - hbmW - 10 : CL + CW + 10;
+    const pulseH = 0.5 + 0.5 * Math.sin(t * 0.9 + side * Math.PI);
+
+    // Stack layers
+    for (let layer = 0; layer < 6; layer++) {
+      const ly = hbmY + layer * (hbmH / 6);
+      const lh = hbmH / 6 - 3;
+      ctx.fillStyle = `rgba(10,127,245,${0.06 + pulseH * 0.04})`;
+      ctx.fillRect(hx, ly, hbmW, lh);
+      ctx.strokeStyle = `rgba(10,127,245,${0.2 + pulseH * 0.1})`;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(hx, ly, hbmW, lh);
+    }
+
+    // HBM label
+    ctx.save();
+    ctx.translate(hx + hbmW/2, hbmY + hbmH/2);
+    ctx.rotate(side === 0 ? -Math.PI/2 : Math.PI/2);
+    ctx.fillStyle = C.accent2;
+    ctx.font = `bold 9px 'Space Mono', monospace`;
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.7;
+    ctx.fillText('HBM3e · 48GB · 3TB/s', 0, 4);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+    // Connection lines from die to HBM
+    const lineCount = 8;
+    for (let l = 0; l < lineCount; l++) {
+      const ly = hbmY + 20 + l * (hbmH - 40) / (lineCount - 1);
+      const lx1 = side === 0 ? CL : CL + CW;
+      const lx2 = side === 0 ? hx + hbmW : hx;
+      const lp  = 0.3 + 0.7 * Math.abs(Math.sin(t * 1.4 + l * 0.5 + side));
+      ctx.beginPath();
+      ctx.moveTo(lx1, ly); ctx.lineTo(lx2, ly);
+      ctx.strokeStyle = C.accent2;
+      ctx.lineWidth = 0.5;
+      ctx.globalAlpha = lp * 0.35;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ── Particles ─────────────────────────────────────────
+  particles.forEach(p => { p.update(); p.draw(); });
+
+  // ── Corner labels ──────────────────────────────────────
+  ctx.fillStyle = C.text;
+  ctx.font      = `10px 'Space Mono', monospace`;
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 0.5;
+  ctx.fillText('APEX-1 · DIE 0', CL + 6, CT - 6);
+  ctx.textAlign = 'right';
+  ctx.fillText('TSMC N3E · ~300mm²', CL + CW - 6, CT - 6);
+  ctx.globalAlpha = 1;
+}
+
+let animT = 0;
+function animate() {
+  animT += 0.016;
+  drawChip(animT);
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ── Scroll reveal ──────────────────────────────────────
+const reveals = document.querySelectorAll('.reveal, .reveal-stagger');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      // Animate performance bars
+      e.target.querySelectorAll('.perf-bar-fill').forEach(bar => {
+        const w = bar.getAttribute('data-width');
+        bar.style.width = w + '%';
+      });
+    }
+  });
+}, { threshold: 0.15 });
+
+reveals.forEach(el => observer.observe(el));
+
+// Initialize bars at 0
+document.querySelectorAll('.perf-bar-fill').forEach(bar => {
+  bar.style.width = '0%';
+});
+
+// ── Hero stats counter animation ──────────────────────
+function animateCounter(el, target, suffix, duration = 1200) {
+  let start = null;
+  const step = ts => {
+    if (!start) start = ts;
+    const progress = Math.min((ts - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.floor(eased * target).toLocaleString() + suffix;
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+const heroObs = new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) {
+    setTimeout(() => {
+      const stats = document.querySelectorAll('.hero-stat-val');
+      // These are displayed inline with <em> tags — just fade in
+      stats.forEach(s => { s.style.opacity = '0'; s.style.transition = 'opacity 0.5s'; });
+      setTimeout(() => stats.forEach((s, i) => {
+        setTimeout(() => { s.style.opacity = '1'; }, i * 120);
+      }), 300);
+    }, 200);
+    heroObs.disconnect();
+  }
+}, { threshold: 0.5 });
+heroObs.observe(document.querySelector('.hero-stats'));
+</script>
+</body>
+</html>
