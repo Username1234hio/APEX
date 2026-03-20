@@ -1,0 +1,51 @@
+[*]
+[*] APEX-1 TOPS measurement — GTKWave save file
+[*] Open with: gtkwave array_tops.vcd apex1_tops.gtkw
+[*]
+
+[dumpfile] "array_tops.vcd"
+[savefile] "apex1_tops.gtkw"
+[timestart] 0
+[size] 1400 900
+[pos] 0 0
+*-20.000000 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+
+[treeopen] TOP.
+[treeopen] TOP.systolic_array.
+
+@28
+TOP.systolic_array.clk
+TOP.systolic_array.rst_n
+
+@200
+-Clock & Control
+
+@28
+TOP.systolic_array.weight_load_en
+TOP.systolic_array.act_valid
+TOP.systolic_array.drain_en
+TOP.systolic_array.result_valid
+TOP.systolic_array.busy
+
+@200
+-Array Status
+
+@22
+TOP.systolic_array.dtype[2:0]
+TOP.systolic_array.weight_col_idx[6:0]
+TOP.systolic_array.act_row_idx[6:0]
+
+@200
+-Data format & addressing
+
+@28
+TOP.systolic_array.array_en
+
+@200
+-Result
+
+@22
+TOP.systolic_array.result_data[31:0]
+
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,27 @@
+1. Front-End Design (Logic & Verification)
+RTL Design: You write SystemVerilog to define the chip's logic behavior. (done)
+Verification: Rigorous simulation (using tools like Verilator, Cocotb, or QuestaSim) ensures the logic is functional. This is crucial as errors cannot be fixed after manufacturing.
+FPGA Emulation: Often, the design is implemented on an FPGA (e.g., Xilinx Spartan) to test functionality in real hardware before committing to silicon. 
+
+2. Synthesis (Logic to Gates)
+Synthesis: EDA tools (e.g., Synopsys Design Compiler, Yosys) translate the SystemVerilog RTL code into a gate-level netlist, which is a representation of the logic using standard cells (AND, OR, flip-flops) from a specific technology library.
+Static Timing Analysis (STA): Checks that signals propagate fast enough to meet timing requirements. 
+
+3. Back-End Design (Physical Design - GDSII)
+Floorplanning: Defines the chip size and maps out where major functional blocks (memory, core, I/O) will be placed.
+Placement and Routing (PnR): Tools (e.g., OpenROAD, Cadence Innovus) place individual standard cells and connect them with metal wires.
+Clock Tree Synthesis (CTS): Distributes the clock signal evenly across the die.
+GDSII Generation: The final layout is exported as a GDSII file, which is a database format used to represent planar geometric shapes for photolithography. 
+
+4. Sign-off and Tape-out
+Physical Verification: DRC (Design Rule Check) ensures the design meets foundry manufacturing constraints. LVS (Layout Versus Schematic) verifies that the physical layout matches the netlist.
+Tape-out: The final GDSII file is sent to a semiconductor foundry (e.g., TSMC, GlobalFoundries). 
+
+5. Fabrication (Manufacturing)
+Photolithography: The GDSII pattern is transferred to a silicon wafer using light-sensitive photoresist and masks.
+Etching and Deposition: Unwanted materials are removed, and new material layers are added to build the transistors and interconnects (copper/aluminum wires).
+Wafer Probing: Defective chips on the wafer are identified. 
+
+6. Packaging and Post-Silicon
+Dicing: The wafer is cut with a diamond saw into individual silicon dies.
+Packaging: Good dies are mounted on a substrate, wire-bonded to leads, and sealed in plastic/ceramic to create the final, printable chip. 

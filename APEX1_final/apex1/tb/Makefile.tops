@@ -1,0 +1,68 @@
+# ============================================================
+# APEX-1 TOPS Testbench — Makefile additions
+# Append to or include from the main apex1/Makefile
+# ============================================================
+
+TB_DIR   = tb
+RTL_DIR  = rtl
+
+TOPS_SRCS = \
+  $(RTL_DIR)/pkg/apex1_pkg.sv \
+  $(RTL_DIR)/core/bf16_mul.sv \
+  $(RTL_DIR)/core/fp8_mul.sv \
+  $(RTL_DIR)/core/mac_cell.sv \
+  $(RTL_DIR)/core/systolic_array.sv \
+  $(RTL_DIR)/core/mxu_cluster.sv \
+  $(RTL_DIR)/memory/spad_controller.sv \
+  $(RTL_DIR)/memory/dma_engine.sv \
+  $(RTL_DIR)/special/sfu.sv \
+  $(RTL_DIR)/special/grad_accumulator.sv \
+  $(RTL_DIR)/special/allreduce_engine.sv \
+  $(RTL_DIR)/control/static_sequencer.sv \
+  $(RTL_DIR)/io/pcie_host_if.sv \
+  $(RTL_DIR)/apex1_die.sv \
+  $(TB_DIR)/apex1_perf_monitor.sv \
+  $(TB_DIR)/apex1_tops_golden.sv \
+  $(TB_DIR)/apex1_tops_coverage.sv
+
+.PHONY: tops_sim tops_fullchip tops_all
+
+# ── Single-array TOPS test (fast) ─────────────────────────
+tops_sim:
+	iverilog -g2012 -Wall \
+	  -I $(RTL_DIR)/pkg \
+	  $(TOPS_SRCS) \
+	  $(TB_DIR)/apex1_tops_tb.sv \
+	  -o apex1_tops.vvp
+	vvp apex1_tops.vvp | tee tops_results.txt
+	@echo ""
+	@echo "TOPS summary:"
+	@grep "TOPS\|RESULT\|PASS\|FAIL" tops_results.txt
+
+# ── Full-chip TOPS test (slower — drives full die) ─────────
+tops_fullchip:
+	iverilog -g2012 -Wall \
+	  -I $(RTL_DIR)/pkg \
+	  $(TOPS_SRCS) \
+	  $(TB_DIR)/apex1_fullchip_tops_tb.sv \
+	  -o apex1_fullchip_tops.vvp
+	vvp apex1_fullchip_tops.vvp | tee tops_fullchip_results.txt
+	@grep "TOPS\|PASS\|FAIL\|EXTRAPOLATION" tops_fullchip_results.txt
+
+# ── Both tests ─────────────────────────────────────────────
+tops_all: tops_sim tops_fullchip
+	@echo ""
+	@echo "=== Combined TOPS results ==="
+	@grep "RESULT\|EXTRAPOLATION" tops_results.txt tops_fullchip_results.txt
+
+# ── View waveforms ─────────────────────────────────────────
+waves_tops:
+	gtkwave apex1_tops.vcd &
+
+waves_fullchip:
+	gtkwave apex1_fullchip.vcd &
+
+# ── Clean TOPS outputs ─────────────────────────────────────
+clean_tops:
+	rm -f apex1_tops.vvp apex1_tops.vcd tops_results.txt
+	rm -f apex1_fullchip_tops.vvp apex1_fullchip.vcd tops_fullchip_results.txt
